@@ -1,0 +1,3 @@
+<?
+$sSectionName="portal_hub";
+?>

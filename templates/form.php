@@ -1,0 +1,115 @@
+<?php
+if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
+global $USER;
+
+use Bitrix\Main\UI\Extension;
+
+if (!$USER->IsAdmin()) return;
+
+// Загружаем Bitrix UI (кнопки/формы/селектор)
+Extension::load(['ui.entity-selector', 'ui.buttons', 'ui.forms', 'main.core']);
+?>
+
+<?php if (isset($_GET["created"])): ?>
+    <div class="ui-alert ui-alert-success">
+        <span class="ui-alert-message">
+            Сайт <b><?= htmlspecialcharsbx($_GET["created"]) ?></b> успешно создан.
+        </span>
+    </div>
+<?php endif; ?>
+
+<div class="ui-block ui-block-section" style="padding:16px;">
+    <div class="ui-block-title">
+        <h3>Создать новый портал сайта</h3>
+    </div>
+
+    <form method="post" action="" class="ui-form">
+        <?= bitrix_sessid_post() ?>
+        <input type="hidden" name="create_site" value="Y" />
+
+        <div class="ui-form-row">
+            <div class="ui-form-label">Название сайта</div>
+            <div class="ui-form-content">
+                <input type="text" name="site_title" required class="ui-ctl ui-ctl-textbox">
+            </div>
+        </div>
+
+        <div class="ui-form-row">
+            <div class="ui-form-label">Код сайта (папка, латиница)</div>
+            <div class="ui-form-content">
+                <input type="text" name="site_code" class="ui-ctl ui-ctl-textbox" placeholder="Оставьте пустым — создастся автоматически">
+            </div>
+        </div>
+
+        <div class="ui-form-row">
+            <div class="ui-form-label">Название роли</div>
+            <div class="ui-form-content">
+                <input type="text" name="role_name" class="ui-ctl ui-ctl-textbox" placeholder="Например: Роль отдела продаж">
+            </div>
+        </div>
+
+        <div class="ui-form-row">
+            <div class="ui-form-label">Пользователи роли</div>
+            <div class="ui-form-content">
+                <input type="hidden" name="role_users" id="role_users_input">
+                <div id="user-selector" style="margin-bottom:10px;"></div>
+                <button type="button" id="open-selector-btn" class="ui-btn ui-btn-light-border ui-btn-sm">
+                    Выбрать пользователей
+                </button>
+            </div>
+        </div>
+
+        <div class="ui-form-row">
+            <button type="submit" class="ui-btn ui-btn-success">Создать сайт</button>
+        </div>
+    </form>
+</div>
+
+<script>
+BX.ready(function () {
+    var openBtn = document.getElementById('open-selector-btn');
+    var container = document.getElementById('user-selector');
+    var hiddenInput = document.getElementById('role_users_input');
+
+    if (!openBtn) return;
+
+    var dialog = new BX.UI.EntitySelector.Dialog({
+        id: 'portal-hub-user-selector',
+        targetNode: openBtn,
+        context: 'PORTAL_HUB_USER_SELECT',
+        entities: [{ id: 'user' }],
+        multiple: true,
+        enableSearch: true,
+        width: 500,
+        dropdownMode: false,
+        events: {
+            'Item:onSelect': updateView,
+            'Item:onDeselect': updateView
+        }
+    });
+
+    function updateView() {
+        var items = dialog.getSelectedItems();
+        // Обновляем скрытое поле
+        hiddenInput.value = items.map(function (i) { return i.id; }).join(',');
+
+        // Отрисовываем красивые лейблы
+        container.innerHTML = '';
+        items.forEach(function (i) {
+            var el = document.createElement('div');
+            el.className = 'ui-label ui-label-light ui-label-fill-light';
+            el.style.margin = '4px';
+            el.innerHTML = '<span class="ui-label-inner">' + BX.util.htmlspecialchars(i.getTitle()) + '</span>';
+            container.appendChild(el);
+        });
+    }
+
+    openBtn.addEventListener('click', function () {
+        if (typeof BX === 'undefined' || !BX.UI || !BX.UI.EntitySelector) {
+            alert('UI Entity Selector не загружен. Убедитесь, что страница подключает header.php.');
+            return;
+        }
+        dialog.show();
+    });
+});
+</script>
